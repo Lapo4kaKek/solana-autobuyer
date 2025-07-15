@@ -1,5 +1,6 @@
 use anchor_lang::prelude::*;
 
+pub mod pool_finder;
 pub mod raydium;
 pub trait DexAdapter {
     fn get_quote(&self, input_mint: Pubkey, output_mint: Pubkey, amount: u64) -> Result<u64>;
@@ -18,29 +19,29 @@ pub struct SwapRoute {
     pub output_mint: Pubkey,
     pub amount_in: u64,
     pub min_amount_out: u64,
-    pub dex_type: DexType,
+    pub dex_type: Dex,
     pub route_data: Vec<u8>,
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize, Debug, Clone, Copy, PartialEq)]
-pub enum DexType {
+pub enum Dex {
     Jupiter,
     Raydium,
     Orca,
 }
 
-impl Default for DexType {
+impl Default for Dex {
     fn default() -> Self {
-        DexType::Raydium
+        Dex::Raydium
     }
 }
 
-impl DexType {
+impl Dex {
     pub fn get_adapter(&self) -> Box<dyn DexAdapter> {
         match self {
-            DexType::Jupiter => todo!(),
-            DexType::Raydium => Box::new(raydium::RaydiumAdapter::new()),
-            DexType::Orca => todo!(),
+            Dex::Jupiter => todo!(),
+            Dex::Raydium => Box::new(raydium::RaydiumAdapter::new()),
+            Dex::Orca => todo!(),
         }
     }
 }

@@ -1,7 +1,6 @@
 use crate::dex::{DexAdapter, SwapRoute};
 use crate::AutoSwap;
 use anchor_lang::prelude::*;
-use anyhow::Result;
 use raydium_amm_cpi::SwapBaseIn;
 
 pub struct RaydiumAdapter {
