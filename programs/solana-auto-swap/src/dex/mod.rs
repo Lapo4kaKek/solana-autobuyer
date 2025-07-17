@@ -1,14 +1,16 @@
 use anchor_lang::prelude::*;
 
+use crate::{error::ErrorCode, AutoSwap};
+
 pub mod pool_finder;
 pub mod raydium;
 pub trait DexAdapter {
     fn get_quote(&self, input_mint: Pubkey, output_mint: Pubkey, amount: u64) -> Result<u64>;
 
     fn get_required_accounts(&self, route: &SwapRoute) -> Vec<AccountMeta>;
-    fn execute_swap<'info>(
+    fn execute_swap(
         &self,
-        ctx: &Context<'_, '_, '_, 'info, crate::AutoSwap<'info>>,
+        ctx: &Context<AutoSwap>,
         route: SwapRoute,
     ) -> Result<u64>;
 }
@@ -37,11 +39,11 @@ impl Default for Dex {
 }
 
 impl Dex {
-    pub fn get_adapter(&self) -> Box<dyn DexAdapter> {
+    pub fn get_adapter(&self) -> Result<Box<dyn DexAdapter>> {
         match self {
-            Dex::Jupiter => todo!(),
-            Dex::Raydium => Box::new(raydium::RaydiumAdapter::new()),
-            Dex::Orca => todo!(),
+            Dex::Jupiter => Err(ErrorCode::UnsupportedDex.into()),
+            Dex::Raydium => Ok(Box::new(raydium::RaydiumAdapter::new())),
+            Dex::Orca => Err(ErrorCode::UnsupportedDex.into()),
         }
     }
 }

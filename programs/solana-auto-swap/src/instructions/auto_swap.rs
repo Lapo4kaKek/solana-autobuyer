@@ -4,8 +4,7 @@ use anchor_spl::token::Token;
 use anchor_lang::Accounts;
 use raydium_amm_cpi::SwapBaseIn;
 
-use crate::dex::{pool_finder::find_available_pool, raydium::RaydiumAdapter, Dex, SwapRoute};
-use crate::error;
+use crate::dex::{pool_finder::find_available_pool, SwapRoute};
 
 #[derive(Accounts)]
 pub struct AutoSwap<'info> {
@@ -76,40 +75,6 @@ pub struct AutoSwap<'info> {
     pub user: Signer<'info>,
 }
 
-pub fn auto_swap(
-    ctx: Context<AutoSwap>,
-    token_mint: Pubkey,
-    quote_mint: Pubkey,
-    amount_in: u64,
-    min_amount_out: u64,
-) -> Result<()> {
-    let pool_info = find_available_pool(&token_mint, &quote_mint, &ctx.remaining_accounts)?;
-
-    match pool_info.dex_type {
-        Dex::Raydium => {
-            let dex = RaydiumAdapter::new();
-            let route = SwapRoute {
-                input_mint: token_mint,
-                output_mint: quote_mint,
-                amount_in,
-                min_amount_out,
-                dex_type: Dex::Raydium,
-                route_data: Vec::new(),
-            };
-
-            let result = dex.raydium_swap_base_in(ctx, route)?;
-            msg!("Swap completed, received: {}", result);
-            Ok(())
-        }
-        Dex::Jupiter => {
-            return Err(error::ErrorCode::UnsupportedDex.into());
-        }
-        Dex::Orca => {
-            return Err(error::ErrorCode::UnsupportedDex.into());
-        }
-    }
-}
-
 impl<'info> From<&&mut AutoSwap<'info>> for raydium_amm_cpi::SwapBaseIn<'info> {
     fn from(accounts: &&mut AutoSwap<'info>) -> Self {
         SwapBaseIn {
@@ -132,4 +97,29 @@ impl<'info> From<&&mut AutoSwap<'info>> for raydium_amm_cpi::SwapBaseIn<'info> {
             token_program: accounts.token_program.clone(),
         }
     }
+}
+
+pub fn auto_swap(
+    ctx: Context<AutoSwap>,
+    token_mint: Pubkey,
+    quote_mint: Pubkey,
+    amount_in: u64,
+    min_amount_out: u64,
+) -> Result<()> {
+    let pool_info = find_available_pool(&token_mint, &quote_mint, &ctx.remaining_accounts)?;
+
+    let route = SwapRoute {
+        input_mint: token_mint,
+        output_mint: quote_mint,
+        amount_in,
+        min_amount_out,
+        dex_type: pool_info.dex_type,
+        route_data: Vec::new(),
+    };
+
+    let adapter = pool_info.dex_type.get_adapter()?;
+    let amount_out = adapter.execute_swap(&ctx, route)?;
+    
+    msg!("Swap completed, received: {}", amount_out);
+    Ok(())
 }

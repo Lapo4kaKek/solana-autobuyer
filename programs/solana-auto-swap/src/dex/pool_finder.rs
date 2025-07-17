@@ -65,7 +65,7 @@ fn find_raydium_pool(
         (token_b, token_a)
     };
 
-    let seeds = &[b"amm", base.as_ref(), quote.as_ref()];
+    let seeds = &[b"pool", base.as_ref(), quote.as_ref()];
     let (pool_address, _) =
         Pubkey::find_program_address(seeds, &crate::constants::RAYDIUM_PROGRAM_ID);
 
